@@ -1,0 +1,528 @@
+openapi: 3.0.3
+x-stoplight:
+  id: 1dd6lh02u73pj
+info:
+  title: ENO Form Builder API
+  description: |
+    API REST exposée par le service `form-backend` (Symfony + API Platform).
+
+    Deux ressources principales :
+      - **FormDefinition** : définition d'un formulaire (métadonnées + arborescence `presentation`).
+      - **FormSubmission** : soumission de données pour une `FormDefinition` donnée.
+
+    Le format par défaut est **JSON-LD** (`application/ld+json`) — les réponses incluent les
+    champs sémantiques `@context`, `@id`, `@type`. Les collections sont enveloppées par
+    Hydra (`hydra:member`, `hydra:totalItems`).
+
+    Les erreurs respectent **RFC 7807** (`application/problem+json`).
+
+    Le champ `presentation` d'une `FormDefinition` est un objet libre validé côté serveur
+    contre le JSON Schema partagé `packages/shared/schema/form-presentation.schema.json`
+    (titre, composants, conditions, validations…). Voir ce fichier pour la structure exacte.
+  version: 1.0.0
+  contact:
+    name: CIA Form Builder
+servers:
+  - url: 'http://localhost:8000/api'
+    description: Environnement de développement local
+  - url: 'https://{host}/api'
+    description: Environnement déployé
+    variables:
+      host:
+        default: form-builder.example.com
+tags:
+  - name: FormDefinition
+    description: 'Définitions de formulaires (structure, métadonnées, versions).'
+  - name: FormSubmission
+    description: Soumissions de données associées à une `FormDefinition`.
+paths:
+  /form_definitions:
+    get:
+      tags:
+        - FormDefinition
+      operationId: getFormDefinitionCollection
+      summary: Liste les définitions de formulaire
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/ItemsPerPage'
+      responses:
+        '200':
+          description: Collection paginée de FormDefinition (enveloppe Hydra).
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/FormDefinition.Collection'
+      x-stoplight:
+        id: ztpqq7jvj4yzp
+    post:
+      tags:
+        - FormDefinition
+      operationId: postFormDefinition
+      summary: Crée une nouvelle définition de formulaire
+      description: |
+        Le champ `presentation` est validé contre `form-presentation.schema.json`.
+        L'unicité du couple `(presentation.id, presentation.version)` est vérifiée.
+      requestBody:
+        required: true
+        content:
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/FormDefinition.Write'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormDefinition.Write'
+      responses:
+        '201':
+          description: FormDefinition créée.
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/FormDefinition.Read'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      x-stoplight:
+        id: 7amg2ar750dqp
+  '/form_definitions/{id}':
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags:
+        - FormDefinition
+      operationId: getFormDefinition
+      summary: Récupère une définition de formulaire par identifiant
+      responses:
+        '200':
+          description: FormDefinition trouvée.
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/FormDefinition.Read'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-stoplight:
+        id: iiexy2i7lxbbc
+    put:
+      tags:
+        - FormDefinition
+      operationId: putFormDefinition
+      summary: Remplace une définition de formulaire
+      description: |
+        Comportement `standard_put: true` — le corps remplace entièrement la ressource.
+        `presentation` est revalidé contre le JSON Schema et l'unicité
+        `(presentation.id, presentation.version)` est revérifiée.
+      requestBody:
+        required: true
+        content:
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/FormDefinition.Write'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormDefinition.Write'
+      responses:
+        '200':
+          description: FormDefinition mise à jour.
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/FormDefinition.Read'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      x-stoplight:
+        id: 8jlihbzlquzcb
+    delete:
+      tags:
+        - FormDefinition
+      operationId: deleteFormDefinition
+      summary: Supprime une définition de formulaire
+      description: |
+        Supprime également par cascade toutes les `FormSubmission` rattachées
+        (`orphanRemoval: true`).
+      responses:
+        '204':
+          description: Suppression effectuée.
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-stoplight:
+        id: 1dz2n2jpouhmj
+  /form_submissions:
+    get:
+      tags:
+        - FormSubmission
+      operationId: getFormSubmissionCollection
+      summary: Liste les soumissions de formulaire
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/ItemsPerPage'
+      responses:
+        '200':
+          description: Collection paginée de FormSubmission (enveloppe Hydra).
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/FormSubmission.Collection'
+      x-stoplight:
+        id: jac3pabt5yo4o
+    post:
+      tags:
+        - FormSubmission
+      operationId: postFormSubmission
+      summary: Enregistre une nouvelle soumission
+      requestBody:
+        required: true
+        content:
+          application/ld+json:
+            schema:
+              $ref: '#/components/schemas/FormSubmission.Write'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormSubmission.Write'
+      responses:
+        '201':
+          description: FormSubmission créée.
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/FormSubmission.Read'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      x-stoplight:
+        id: yp1tv8k851vgd
+  '/form_submissions/{id}':
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags:
+        - FormSubmission
+      operationId: getFormSubmission
+      summary: Récupère une soumission par identifiant
+      responses:
+        '200':
+          description: FormSubmission trouvée.
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/FormSubmission.Read'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-stoplight:
+        id: 7cp80zk9fho4f
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: Identifiant numérique de la ressource (auto-généré).
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Numéro de page (pagination Hydra).
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    ItemsPerPage:
+      name: itemsPerPage
+      in: query
+      required: false
+      description: Nombre d'éléments par page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 30
+  responses:
+    BadRequest:
+      description: 'Corps de requête invalide (JSON mal formé, champs manquants).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Ressource introuvable.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: |
+        Échec de validation métier :
+          - `presentation` ne respecte pas le JSON Schema
+          - clé dupliquée dans `presentation.components`
+          - couple `(presentation.id, presentation.version)` déjà existant
+          - contrainte Symfony Validator non satisfaite
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ConstraintViolationList'
+  schemas:
+    FormDefinition.Read:
+      type: object
+      description: Représentation JSON-LD d'une FormDefinition en lecture.
+      properties:
+        '@context':
+          type: string
+          example: /api/contexts/FormDefinition
+        '@id':
+          type: string
+          example: /api/form_definitions/42
+        '@type':
+          type: string
+          example: FormDefinition
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        presentation:
+          $ref: '#/components/schemas/FormPresentation'
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+      x-stoplight:
+        id: hrt0i72x1auu0
+    FormDefinition.Write:
+      type: object
+      required:
+        - name
+        - presentation
+      description: Représentation acceptée pour la création/mise à jour d'une FormDefinition.
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+        presentation:
+          $ref: '#/components/schemas/FormPresentation'
+      x-stoplight:
+        id: zt37lou1dvi4z
+    FormDefinition.Collection:
+      type: object
+      description: Collection paginée Hydra de FormDefinition.
+      properties:
+        '@context':
+          type: string
+          example: /api/contexts/FormDefinition
+        '@id':
+          type: string
+          example: /api/form_definitions
+        '@type':
+          type: string
+          example: 'hydra:Collection'
+        'hydra:member':
+          type: array
+          items:
+            $ref: '#/components/schemas/FormDefinition.Read'
+        'hydra:totalItems':
+          type: integer
+          minimum: 0
+        'hydra:view':
+          $ref: '#/components/schemas/HydraView'
+      x-stoplight:
+        id: 9x6zbwmnp4ffd
+    FormSubmission.Read:
+      type: object
+      description: Représentation JSON-LD d'une FormSubmission en lecture.
+      properties:
+        '@context':
+          type: string
+          example: /api/contexts/FormSubmission
+        '@id':
+          type: string
+          example: /api/form_submissions/7
+        '@type':
+          type: string
+          example: FormSubmission
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        formDefinition:
+          oneOf:
+            - type: string
+              description: IRI référençant la FormDefinition (ex. `/api/form_definitions/42`).
+              example: /api/form_definitions/42
+            - $ref: '#/components/schemas/FormDefinition.Read'
+        data:
+          type: object
+          description: |
+            Données soumises par l'utilisateur. La forme dépend des composants de la
+            `FormDefinition` ciblée. Les clés correspondent aux `key` (ou `variable` pour
+            les groups) des composants.
+          additionalProperties: true
+        submittedAt:
+          type: string
+          format: date-time
+          readOnly: true
+      x-stoplight:
+        id: dggtnb3yduee3
+    FormSubmission.Write:
+      type: object
+      required:
+        - formDefinition
+        - data
+      description: Représentation acceptée pour la création d'une FormSubmission.
+      properties:
+        formDefinition:
+          type: string
+          description: IRI de la FormDefinition liée (ex. `/api/form_definitions/42`).
+          example: /api/form_definitions/42
+        data:
+          type: object
+          description: 'Valeurs collectées par le formulaire, indexées par `key`.'
+          additionalProperties: true
+      x-stoplight:
+        id: 3rxu4aw8t32v1
+    FormSubmission.Collection:
+      type: object
+      description: Collection paginée Hydra de FormSubmission.
+      properties:
+        '@context':
+          type: string
+          example: /api/contexts/FormSubmission
+        '@id':
+          type: string
+          example: /api/form_submissions
+        '@type':
+          type: string
+          example: 'hydra:Collection'
+        'hydra:member':
+          type: array
+          items:
+            $ref: '#/components/schemas/FormSubmission.Read'
+        'hydra:totalItems':
+          type: integer
+          minimum: 0
+        'hydra:view':
+          $ref: '#/components/schemas/HydraView'
+      x-stoplight:
+        id: u1ulgn1mra0na
+    FormPresentation:
+      type: object
+      description: |
+        Arborescence de composants d'un formulaire. Validé côté serveur contre
+        `packages/shared/schema/form-presentation.schema.json` (draft-07).
+
+        Champs requis : `title`, `schemeVersion`, `components`.
+        Le couple `(id, version)` doit être unique parmi les FormDefinition.
+      required:
+        - title
+        - schemeVersion
+        - components
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Identifiant métier du formulaire (ex. `contact-form`).
+        version:
+          type: string
+          description: 'Version du formulaire (ex. `1.0`, `v2`).'
+        type:
+          type: string
+          description: Réservé — vaut `default` pour l'instant.
+        title:
+          type: string
+        description:
+          type: string
+        schemeVersion:
+          type: string
+          example: '1.0'
+        submitLabel:
+          type: string
+        components:
+          type: array
+          description: |
+            Liste ordonnée des composants racine. Chaque composant a un `type`
+            parmi `textfield | textarea | number | select | radio | checkbox | date |
+            html | button | panel | group | dynalist | iframe | expression | columns |
+            separator`. La structure exacte de chaque variante est spécifiée dans
+            le JSON Schema partagé.
+          items:
+            type: object
+            additionalProperties: true
+      x-stoplight:
+        id: sa4jahglgntia
+    HydraView:
+      type: object
+      description: Métadonnées de pagination Hydra.
+      properties:
+        '@id':
+          type: string
+        '@type':
+          type: string
+          example: 'hydra:PartialCollectionView'
+        'hydra:first':
+          type: string
+        'hydra:last':
+          type: string
+        'hydra:previous':
+          type: string
+        'hydra:next':
+          type: string
+      x-stoplight:
+        id: im7tbmspmug5a
+    Error:
+      type: object
+      description: Erreur conforme RFC 7807 (`application/problem+json`).
+      properties:
+        type:
+          type: string
+          example: 'https://tools.ietf.org/html/rfc2616#section-10'
+        title:
+          type: string
+          example: An error occurred
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+      x-stoplight:
+        id: f816l8tww2iqt
+    ConstraintViolationList:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          description: |
+            Variante de `Error` retournée pour les violations de validation
+            (Symfony Validator, JSON Schema, unicité métier).
+          properties:
+            violations:
+              type: array
+              items:
+                type: object
+                properties:
+                  propertyPath:
+                    type: string
+                  message:
+                    type: string
+                  code:
+                    type: string
+                    nullable: true
+      x-stoplight:
+        id: jvf4yjaoc4bhc
